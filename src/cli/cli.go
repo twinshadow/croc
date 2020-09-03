@@ -106,16 +106,26 @@ func Run() (err error) {
 	return app.Run(os.Args)
 }
 
-func getConfigDir() (homedir string, err error) {
-	homedir, err = os.UserHomeDir()
+func getConfigDir() (confdir string, err error) {
+	confdir, err = os.UserHomeDir()
 	if err != nil {
 		log.Error(err)
 		return
 	}
-	homedir = path.Join(homedir, ".config", "croc")
-	if _, err = os.Stat(homedir); os.IsNotExist(err) {
-		log.Debugf("creating home directory %s", homedir)
-		err = os.MkdirAll(homedir, 0700)
+	confdir = path.Join(confdir, ".config", "croc")
+	if _, err = os.Stat(confdir); err == nil {
+		return
+	}
+
+	confdir, err = os.UserConfigDir()
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	confdir = path.Join(confdir, "croc")
+	if _, err = os.Stat(confdir); os.IsNotExist(err) {
+		log.Debugf("creating config directory %s", confdir)
+		err = os.MkdirAll(confdir, 0700)
 	}
 	return
 }
