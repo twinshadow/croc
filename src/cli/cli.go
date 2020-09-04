@@ -49,11 +49,11 @@ func Run() (err error) {
 			Description: "send a file over the relay",
 			ArgsUsage:   "[filename]",
 			Flags: []cli.Flag{
-				cli.StringFlag{Name: "code, c", Usage: "codephrase used to connect to relay"},
+				cli.StringFlag{Name: "code, c", Usage: "codephrase used to connect to relay", EnvVar: "CROC_SEND_PASSWORD,CROC_PASSWORD"},
 				cli.StringFlag{Name: "text, t", Usage: "send some text"},
-				cli.BoolFlag{Name: "no-local", Usage: "disable local relay when sending"},
-				cli.BoolFlag{Name: "no-multi", Usage: "disable multiplexing"},
-				cli.StringFlag{Name: "ports", Value: "9009,9010,9011,9012,9013", Usage: "ports of the local relay (optional)"},
+				cli.BoolFlag{Name: "no-local", Usage: "disable local relay when sending", EnvVar: "CROC_SEND_NOLOCAL"},
+				cli.BoolFlag{Name: "no-multi", Usage: "disable multiplexing", EnvVar: "CROC_SEND_NOMULTI"},
+				cli.StringFlag{Name: "ports", Value: "9009,9010,9011,9012,9013", Usage: "ports of the local relay (optional)", EnvVar: "CROC_SEND_PORTS,CROC_PORTS"},
 			},
 			HelpName: "croc send",
 			Action: func(c *cli.Context) error {
@@ -69,21 +69,22 @@ func Run() (err error) {
 				return relay(c)
 			},
 			Flags: []cli.Flag{
-				cli.StringFlag{Name: "ports", Value: "9009,9010,9011,9012,9013", Usage: "ports of the relay"},
+				cli.StringFlag{Name: "ports", Value: "9009,9010,9011,9012,9013", Usage: "ports of the relay", EnvVar: "CROC_RELAY_PORTS,CROC_PORTS"},
 			},
 		},
 	}
 	app.Flags = []cli.Flag{
+		cli.StringFlag{Name: "configfile", Usage: "read or write the config to a different location", Value: getConfigFile(), EnvVar: "CROC_CONFIG"},
 		cli.BoolFlag{Name: "remember", Usage: "save these settings to reuse next time"},
-		cli.BoolFlag{Name: "debug", Usage: "toggle debug mode"},
-		cli.BoolFlag{Name: "yes", Usage: "automatically agree to all prompts"},
+		cli.BoolFlag{Name: "debug", Usage: "toggle debug mode", EnvVar: "CROC_DEBUG"},
+		cli.BoolFlag{Name: "yes", Usage: "automatically agree to all prompts", EnvVar: "CROC_YES_TO_ALL"},
 		cli.BoolFlag{Name: "stdout", Usage: "redirect file to stdout"},
-		cli.BoolFlag{Name: "no-compress", Usage: "disable compression"},
-		cli.BoolFlag{Name: "ask", Usage: "make sure sender and recipient are prompted"},
-		cli.StringFlag{Name: "relay", Value: models.DEFAULT_RELAY, Usage: "address of the relay"},
-		cli.StringFlag{Name: "relay6", Value: models.DEFAULT_RELAY6, Usage: "ipv6 address of the relay"},
-		cli.StringFlag{Name: "out", Value: ".", Usage: "specify an output folder to receive the file"},
-		cli.StringFlag{Name: "pass", Value: "pass123", Usage: "password for the relay"},
+		cli.BoolFlag{Name: "no-compress", Usage: "disable compression", EnvVar: "CROC_NOCOMPRESS"},
+		cli.BoolFlag{Name: "ask", Usage: "make sure sender and recipient are prompted", EnvVar: "CROC_CONFIRM"},
+		cli.StringFlag{Name: "relay", Value: models.DEFAULT_RELAY, Usage: "address of the relay", EnvVar: "CROC_RELAY"},
+		cli.StringFlag{Name: "relay6", Value: models.DEFAULT_RELAY6, Usage: "ipv6 address of the relay", EnvVar: "CROC_RELAY6,CROC_RELAY_IPV6"},
+		cli.StringFlag{Name: "out", Value: ".", Usage: "specify an output folder to receive the file", EnvVar: "CROC_DOWNLOADS"},
+		cli.StringFlag{Name: "pass", Value: "pass123", Usage: "password for the relay", EnvVar: "CROC_PASSWORD"},
 	}
 	app.EnableBashCompletion = true
 	app.HideHelp = false
@@ -180,7 +181,7 @@ func send(c *cli.Context) (err error) {
 	} else if crocOptions.RelayAddress6 != models.DEFAULT_RELAY6 {
 		crocOptions.RelayAddress = ""
 	}
-	b, errOpen := ioutil.ReadFile(getConfigFile())
+	b, errOpen := ioutil.ReadFile(c.String("configfile"))
 	if errOpen == nil && !c.GlobalBool("remember") {
 		var rememberedOptions croc.Options
 		err = json.Unmarshal(b, &rememberedOptions)
@@ -334,7 +335,7 @@ func getPaths(fnames []string) (paths []string, haveFolder bool, err error) {
 
 func saveConfig(c *cli.Context, crocOptions croc.Options) {
 	if c.GlobalBool("remember") {
-		configFile := getConfigFile()
+		configFile := c.String("configfile")
 		log.Debug("saving config file")
 		var bConfig []byte
 		// if the code wasn't set, don't save it
