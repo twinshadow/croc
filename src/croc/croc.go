@@ -569,8 +569,10 @@ func (c *Client) Receive() (err error) {
 		// and try to connect to them
 		log.Debug("sending ips?")
 		var data []byte
-		if err := c.conn[0].Send([]byte("ips?")); err != nil {
-			log.Errorf("ips send error: %v", err)
+		if err = c.conn[0].Send([]byte("ips?")); err != nil {
+			log.Debugf("ips send error: %v", err)
+			err = fmt.Errorf("sender not ready")
+			return
 		}
 		data, err = c.conn[0].Receive()
 		if err != nil {
@@ -578,8 +580,10 @@ func (c *Client) Receive() (err error) {
 		}
 		log.Debugf("ips data: %s", data)
 		var ips []string
-		if err := json.Unmarshal(data, &ips); err != nil {
-			log.Errorf("ips unmarshal error: %v", err)
+		if err = json.Unmarshal(data, &ips); err != nil {
+			log.Debugf("ips unmarshal error: %v", err)
+			err = fmt.Errorf("sender not ready")
+			return
 		}
 		if len(ips) > 1 {
 			port := ips[0]
